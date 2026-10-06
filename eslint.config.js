@@ -17,5 +17,26 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'JSXAttribute[name.name="dangerouslySetInnerHTML"]',
+          message: 'Renderiza texto con JSX escapado en lugar de insertar HTML sin sanitizar.',
+        },
+        {
+          selector: 'MemberExpression[property.name="innerHTML"]',
+          message: 'No insertes HTML con innerHTML; usa nodos JSX escapados.',
+        },
+        {
+          selector: 'CallExpression[callee.property.name="insertAdjacentHTML"]',
+          message: 'No insertes HTML con insertAdjacentHTML; usa nodos JSX escapados.',
+        },
+        {
+          selector: 'CallExpression[callee.object.name="document"][callee.property.name="write"]',
+          message: 'No uses document.write para insertar contenido dinámico.',
+        },
+      ],
+    },
   },
 ])

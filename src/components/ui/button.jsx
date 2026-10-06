@@ -52,4 +52,6 @@ function Button({
   )
 }
 
+// Keep the reusable variants next to Button for shadcn/ui consumers.
+// eslint-disable-next-line react-refresh/only-export-components
 export { Button, buttonVariants }

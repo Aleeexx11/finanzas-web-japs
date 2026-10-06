@@ -2,23 +2,33 @@ export const TOKEN_STORAGE_KEY = 'token'
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '')
 
-function getStoredToken() {
+export function getStoredToken() {
   if (typeof window === 'undefined') return null
 
   try {
-    return window.localStorage.getItem(TOKEN_STORAGE_KEY)
+    return window.sessionStorage.getItem(TOKEN_STORAGE_KEY)
   } catch {
     return null
   }
 }
 
-function clearStoredToken() {
+export function storeToken(token) {
   if (typeof window === 'undefined') return
 
   try {
-    window.localStorage.removeItem(TOKEN_STORAGE_KEY)
+    window.sessionStorage.setItem(TOKEN_STORAGE_KEY, token)
   } catch {
-    // La petición puede seguir mostrando el error aunque el almacenamiento no esté disponible.
+    throw new Error('No fue posible guardar la sesión en este navegador.')
+  }
+}
+
+export function clearStoredToken() {
+  if (typeof window === 'undefined') return
+
+  try {
+    window.sessionStorage.removeItem(TOKEN_STORAGE_KEY)
+  } catch {
+    // La sesión en memoria también se limpia aunque el navegador bloquee el almacenamiento.
   }
 }
 
@@ -70,7 +80,10 @@ async function request(path, { method = 'GET', body, headers, ...options } = {})
   const data = await readResponse(response)
 
   if (!response.ok) {
-    if (response.status === 401) clearStoredToken()
+    if (response.status === 401) {
+      clearStoredToken()
+      window.dispatchEvent(new Event('auth:unauthorized'))
+    }
 
     const message =
       (typeof data === 'object' && data !== null && typeof data.message === 'string'
