@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, clearStoredToken, getStoredToken, storeToken } from '@/lib/api'
+import { api } from '@/lib/api'
 import { AuthContext } from '@/context/auth-context'
 
 export function AuthProvider({ children }) {
@@ -10,16 +10,10 @@ export function AuthProvider({ children }) {
     let active = true
 
     async function restoreSession() {
-      if (!getStoredToken()) {
-        if (active) setLoading(false)
-        return
-      }
-
       try {
         const response = await api.get('/auth/user')
         if (active) setUser(response.user)
-      } catch (error) {
-        if (error.status === 401) clearStoredToken()
+      } catch {
         if (active) setUser(null)
       } finally {
         if (active) setLoading(false)
@@ -35,7 +29,6 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     function handleUnauthorized() {
-      clearStoredToken()
       setUser(null)
       setLoading(false)
     }
@@ -45,7 +38,6 @@ export function AuthProvider({ children }) {
   }, [])
 
   function saveSession(response) {
-    storeToken(response.token)
     setUser(response.user)
     setLoading(false)
     return response.user
@@ -62,14 +54,8 @@ export function AuthProvider({ children }) {
   }
 
   async function logout() {
-    try {
-      if (getStoredToken()) await api.post('/auth/logout')
-    } catch {
-      // El cierre local debe completarse aunque la API no esté disponible.
-    } finally {
-      clearStoredToken()
-      setUser(null)
-    }
+    await api.post('/auth/logout')
+    setUser(null)
   }
 
   const value = {

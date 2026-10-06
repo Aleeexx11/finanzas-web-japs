@@ -1,34 +1,18 @@
-export const TOKEN_STORAGE_KEY = 'token'
-
 const API_BASE_URL = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '')
+const API_ROOT_URL = API_BASE_URL.replace(/\/api$/i, '')
+const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
-export function getStoredToken() {
-  if (typeof window === 'undefined') return null
-
+if (typeof window !== 'undefined') {
   try {
-    return window.sessionStorage.getItem(TOKEN_STORAGE_KEY)
+    window.sessionStorage.removeItem('token')
   } catch {
-    return null
+    // Session cookies replace the legacy browser-stored Bearer token.
   }
-}
-
-export function storeToken(token) {
-  if (typeof window === 'undefined') return
 
   try {
-    window.sessionStorage.setItem(TOKEN_STORAGE_KEY, token)
+    window.localStorage.removeItem('token')
   } catch {
-    throw new Error('No fue posible guardar la sesión en este navegador.')
-  }
-}
-
-export function clearStoredToken() {
-  if (typeof window === 'undefined') return
-
-  try {
-    window.sessionStorage.removeItem(TOKEN_STORAGE_KEY)
-  } catch {
-    // La sesión en memoria también se limpia aunque el navegador bloquee el almacenamiento.
+    // The storage may be unavailable in privacy-restricted browser contexts.
   }
 }
 
@@ -37,6 +21,36 @@ function buildUrl(path) {
 
   const normalizedPath = String(path).replace(/^\/+/, '')
   return API_BASE_URL ? `${API_BASE_URL}/${normalizedPath}` : `/${normalizedPath}`
+}
+
+function readXsrfCookie() {
+  if (typeof document === 'undefined') return null
+
+  const entry = document.cookie
+    .split('; ')
+    .find((cookie) => cookie.startsWith('XSRF-TOKEN='))
+
+  if (!entry) return null
+
+  try {
+    return decodeURIComponent(entry.slice('XSRF-TOKEN='.length))
+  } catch {
+    return null
+  }
+}
+
+async function ensureCsrfCookie(forceRefresh = false) {
+  if (!forceRefresh && readXsrfCookie()) return
+
+  const response = await fetch(`${API_ROOT_URL}/sanctum/csrf-cookie`, {
+    method: 'GET',
+    credentials: 'include',
+    headers: { Accept: 'application/json' },
+  })
+
+  if (!response.ok) {
+    throw new Error('No fue posible iniciar la protección CSRF.')
+  }
 }
 
 async function readResponse(response) {
@@ -52,11 +66,18 @@ async function readResponse(response) {
 }
 
 async function request(path, { method = 'GET', body, headers, ...options } = {}) {
+  const normalizedMethod = method.toUpperCase()
   const requestHeaders = new Headers(headers)
   requestHeaders.set('Accept', 'application/json')
 
-  const token = getStoredToken()
-  if (token) requestHeaders.set('Authorization', `Bearer ${token}`)
+  if (UNSAFE_METHODS.has(normalizedMethod)) {
+    const normalizedPath = String(path).replace(/^\/+/, '')
+    const startsNewSession = ['auth/login', 'auth/register'].includes(normalizedPath)
+    await ensureCsrfCookie(startsNewSession)
+
+    const xsrfToken = readXsrfCookie()
+    if (xsrfToken) requestHeaders.set('X-XSRF-TOKEN', xsrfToken)
+  }
 
   let requestBody
   if (body !== undefined) {
@@ -72,7 +93,8 @@ async function request(path, { method = 'GET', body, headers, ...options } = {})
 
   const response = await fetch(buildUrl(path), {
     ...options,
-    method,
+    credentials: 'include',
+    method: normalizedMethod,
     headers: requestHeaders,
     body: requestBody,
   })
@@ -81,7 +103,6 @@ async function request(path, { method = 'GET', body, headers, ...options } = {})
 
   if (!response.ok) {
     if (response.status === 401) {
-      clearStoredToken()
       window.dispatchEvent(new Event('auth:unauthorized'))
     }
 

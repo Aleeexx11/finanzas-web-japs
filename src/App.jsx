@@ -12,11 +12,19 @@ function DashboardPage() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [signingOut, setSigningOut] = useState(false)
+  const [logoutError, setLogoutError] = useState('')
 
   async function handleLogout() {
     setSigningOut(true)
-    await logout()
-    navigate('/login', { replace: true })
+    setLogoutError('')
+
+    try {
+      await logout()
+      navigate('/login', { replace: true })
+    } catch {
+      setLogoutError('No fue posible cerrar la sesión. Revisa tu conexión e inténtalo de nuevo.')
+      setSigningOut(false)
+    }
   }
 
   return (
@@ -34,6 +42,11 @@ function DashboardPage() {
             {signingOut ? 'Cerrando…' : 'Cerrar sesión'}
           </Button>
         </header>
+        {logoutError && (
+          <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {logoutError}
+          </p>
+        )}
 
         <section className="mt-12 rounded-3xl border border-stone-200 bg-white p-7 shadow-sm sm:p-10">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#65816f]">Sesión activa</p>
