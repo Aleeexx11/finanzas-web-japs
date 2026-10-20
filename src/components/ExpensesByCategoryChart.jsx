@@ -4,28 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api } from '@/lib/api'
-import { formatCurrency } from '@/lib/currency'
+import { centsToDecimal, decimalToCents, formatCurrency } from '@/lib/currency'
 
 const chartConfig = {
   montoEnCentavos: {
     label: 'Egresos',
     color: 'var(--chart-1)',
   },
-}
-
-function decimalToCents(amount) {
-  const match = /^(-?)(\d+)(?:\.(\d{1,2}))?$/.exec(String(amount ?? '0.00').trim())
-  if (!match) return 0n
-
-  const [, sign, whole, fraction = ''] = match
-  const cents = (BigInt(whole) * 100n) + BigInt(fraction.padEnd(2, '0'))
-  return sign === '-' ? -cents : cents
-}
-
-function centsToDecimal(cents) {
-  const sign = cents < 0n ? '-' : ''
-  const absoluteCents = cents < 0n ? -cents : cents
-  return `${sign}${absoluteCents / 100n}.${String(absoluteCents % 100n).padStart(2, '0')}`
 }
 
 function formatAxisTick(value) {
@@ -98,6 +83,7 @@ function ExpensesByCategoryChart({ period }) {
     .sort((first, second) => (first.cents > second.cents ? -1 : first.cents < second.cents ? 1 : 0))
     .map(({ cents, ...expense }) => ({
       ...expense,
+      // Keep chart coordinates as integer centavos; tooltip and labels use the exact decimal string.
       montoEnCentavos: Number(cents),
     })), [expenses])
 

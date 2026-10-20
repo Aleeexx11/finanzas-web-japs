@@ -1,5 +1,5 @@
 import { createContext, useContext, useId } from 'react'
-import { ResponsiveContainer, Tooltip } from 'recharts'
+import { Legend, ResponsiveContainer, Tooltip } from 'recharts'
 import { cn } from '@/lib/utils'
 
 const THEMES = {
@@ -100,6 +100,29 @@ function ChartTooltipContent({
   )
 }
 
-const ChartTooltip = Tooltip
+function ChartLegendContent({ payload, className }) {
+  const { config } = useChart()
+  if (!payload?.length) return null
 
-export { ChartContainer, ChartTooltip, ChartTooltipContent }
+  return (
+    <div className={cn('flex flex-wrap items-center justify-center gap-x-5 gap-y-2 pt-3', className)}>
+      {payload.map((item, index) => {
+        const key = String(item.dataKey ?? item.value ?? '')
+        const itemConfig = config[key]
+        const color = item.color ?? itemConfig?.color ?? 'currentColor'
+
+        return (
+          <div key={`${key}-${index}`} className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="h-0.5 w-4 rounded-full" style={{ backgroundColor: color }} aria-hidden="true" />
+            <span>{itemConfig?.label ?? item.value}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+const ChartTooltip = Tooltip
+const ChartLegend = Legend
+
+export { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent }

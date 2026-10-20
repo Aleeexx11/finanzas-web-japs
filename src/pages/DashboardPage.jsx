@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { CalendarBlank, ChartLineUp, TrendDown, TrendUp, Wallet } from '@phosphor-icons/react'
 import { useAuth } from '@/context/useAuth'
 import { DashboardMetricCard } from '@/components/DashboardMetricCard'
+import { AnnualCashFlowChart } from '@/components/AnnualCashFlowChart'
 import { ExpensesByCategoryChart } from '@/components/ExpensesByCategoryChart'
 import { Select } from '@/components/ui/select'
 import { api } from '@/lib/api'
@@ -163,6 +164,7 @@ export default function DashboardPage() {
       </section>
 
       <ExpensesByCategoryChart period={period} />
+      <AnnualCashFlowChart period={period} />
     </>
   )
 }
