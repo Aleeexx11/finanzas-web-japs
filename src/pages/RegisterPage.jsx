@@ -33,7 +33,7 @@ export default function RegisterPage() {
 
     try {
       await register(form)
-      navigate('/dashboard', { replace: true })
+      navigate('/', { replace: true })
     } catch (error) {
       setErrors(error.data?.errors ?? {})
       setMessage(error.data?.message ?? error.message ?? 'No fue posible crear la cuenta.')

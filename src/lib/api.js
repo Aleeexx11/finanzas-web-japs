@@ -2,17 +2,18 @@ const API_BASE_URL = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '')
 const API_ROOT_URL = API_BASE_URL.replace(/\/api$/i, '')
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
+// Retire tokens left by the previous Bearer-token frontend implementation.
 if (typeof window !== 'undefined') {
-  try {
-    window.sessionStorage.removeItem('token')
-  } catch {
-    // Session cookies replace the legacy browser-stored Bearer token.
-  }
-
   try {
     window.localStorage.removeItem('token')
   } catch {
-    // The storage may be unavailable in privacy-restricted browser contexts.
+    // Browser storage may be unavailable in privacy-restricted contexts.
+  }
+
+  try {
+    window.sessionStorage.removeItem('token')
+  } catch {
+    // Browser storage may be unavailable in privacy-restricted contexts.
   }
 }
 
@@ -48,8 +49,8 @@ async function ensureCsrfCookie(forceRefresh = false) {
     headers: { Accept: 'application/json' },
   })
 
-  if (!response.ok) {
-    throw new Error('No fue posible iniciar la protección CSRF.')
+  if (!response.ok || !readXsrfCookie()) {
+    throw new Error('No fue posible iniciar la protección CSRF. Revisa la conexión con el API.')
   }
 }
 
@@ -65,19 +66,15 @@ async function readResponse(response) {
   }
 }
 
+function isNewSessionRequest(path) {
+  const normalizedPath = String(path).replace(/^\/+/, '')
+  return ['auth/login', 'auth/register'].includes(normalizedPath)
+}
+
 async function request(path, { method = 'GET', body, headers, ...options } = {}) {
   const normalizedMethod = method.toUpperCase()
   const requestHeaders = new Headers(headers)
   requestHeaders.set('Accept', 'application/json')
-
-  if (UNSAFE_METHODS.has(normalizedMethod)) {
-    const normalizedPath = String(path).replace(/^\/+/, '')
-    const startsNewSession = ['auth/login', 'auth/register'].includes(normalizedPath)
-    await ensureCsrfCookie(startsNewSession)
-
-    const xsrfToken = readXsrfCookie()
-    if (xsrfToken) requestHeaders.set('X-XSRF-TOKEN', xsrfToken)
-  }
 
   let requestBody
   if (body !== undefined) {
@@ -91,18 +88,38 @@ async function request(path, { method = 'GET', body, headers, ...options } = {})
     }
   }
 
-  const response = await fetch(buildUrl(path), {
+  const needsCsrf = UNSAFE_METHODS.has(normalizedMethod)
+  if (needsCsrf) {
+    await ensureCsrfCookie(isNewSessionRequest(path))
+
+    const xsrfToken = readXsrfCookie()
+    if (!xsrfToken) {
+      throw new Error('No se recibió la cookie de protección CSRF del API.')
+    }
+    requestHeaders.set('X-XSRF-TOKEN', xsrfToken)
+  }
+
+  const fetchOptions = {
     ...options,
-    credentials: 'include',
     method: normalizedMethod,
     headers: requestHeaders,
     body: requestBody,
-  })
+    credentials: 'include',
+  }
+
+  let response = await fetch(buildUrl(path), fetchOptions)
+
+  // A stale session can invalidate the CSRF pair. Refresh it once and retry.
+  if (needsCsrf && response.status === 419) {
+    await ensureCsrfCookie(true)
+    requestHeaders.set('X-XSRF-TOKEN', readXsrfCookie())
+    response = await fetch(buildUrl(path), fetchOptions)
+  }
 
   const data = await readResponse(response)
 
   if (!response.ok) {
-    if (response.status === 401) {
+    if (response.status === 401 && typeof window !== 'undefined') {
       window.dispatchEvent(new Event('auth:unauthorized'))
     }
 

@@ -34,7 +34,7 @@ export default function LoginPage() {
 
     try {
       await login(form)
-      navigate(location.state?.from?.pathname ?? '/dashboard', { replace: true })
+      navigate(location.state?.from?.pathname ?? '/', { replace: true })
     } catch (error) {
       setErrors(error.data?.errors ?? {})
       setMessage(error.data?.message ?? error.message ?? 'No fue posible iniciar sesión.')
@@ -51,7 +51,7 @@ export default function LoginPage() {
       eyebrow="Qué bueno verte de nuevo"
       title="Inicia sesión"
       description="Entra a tu espacio y continúa llevando tus cuentas con claridad."
-      footer={<>¿Aún no tienes una cuenta? <Link className="font-semibold text-[#25604d] hover:underline" to="/register">Regístrate</Link></>}
+      footer={<>¿Aún no tienes una cuenta? <Link className="font-semibold text-[#25604d] hover:underline" to="/registro">Regístrate</Link></>}
     >
       <form className="space-y-5" onSubmit={handleSubmit} noValidate>
         {message && (

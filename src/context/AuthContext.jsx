@@ -37,7 +37,11 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener('auth:unauthorized', handleUnauthorized)
   }, [])
 
-  function saveSession(response) {
+  function acceptSession(response) {
+    if (!response?.user) {
+      throw new Error('El servidor no devolvió los datos de la sesión.')
+    }
+
     setUser(response.user)
     setLoading(false)
     return response.user
@@ -45,12 +49,12 @@ export function AuthProvider({ children }) {
 
   async function login(credentials) {
     const response = await api.post('/auth/login', credentials)
-    return saveSession(response)
+    return acceptSession(response)
   }
 
   async function register(details) {
     const response = await api.post('/auth/register', details)
-    return saveSession(response)
+    return acceptSession(response)
   }
 
   async function logout() {
