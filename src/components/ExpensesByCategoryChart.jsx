@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api } from '@/lib/api'
-import { centsToDecimal, decimalToCents, formatCurrency } from '@/lib/currency'
+import { centsToDecimal, decimalToCents } from '@/lib/currency'
+import { formatearMoneda, nombreMes } from '@/lib/formatters'
 
 const chartConfig = {
   montoEnCentavos: {
@@ -15,7 +16,7 @@ const chartConfig = {
 
 function formatAxisTick(value) {
   if (!Number.isFinite(value)) return ''
-  return formatCurrency(centsToDecimal(BigInt(Math.round(value))))
+  return formatearMoneda(centsToDecimal(BigInt(Math.round(value))))
 }
 
 function renderAmountLabel({ x, y, width, height, value }) {
@@ -29,14 +30,13 @@ function renderAmountLabel({ x, y, width, height, value }) {
       className="fill-muted-foreground"
       fontSize={12}
     >
-      {formatCurrency(value)}
+      {formatearMoneda(value)}
     </text>
   )
 }
 
 function getPeriodLabel(period) {
-  const month = new Intl.DateTimeFormat('es-GT', { month: 'long' })
-    .format(new Date(period.year, period.month - 1, 1))
+  const month = nombreMes(period.month)
   const capitalizedMonth = month.charAt(0).toLocaleUpperCase('es-GT') + month.slice(1)
   return `${capitalizedMonth} ${period.year}`
 }
@@ -142,7 +142,7 @@ function ExpensesByCategoryChart({ period }) {
                   content={(
                     <ChartTooltipContent
                       labelFormatter={(_, payload) => payload?.[0]?.payload?.categoria}
-                      formatter={(_, __, item) => formatCurrency(item?.payload?.total ?? '0.00')}
+                      formatter={(_, __, item) => formatearMoneda(item?.payload?.total ?? '0.00')}
                     />
                   )}
                 />

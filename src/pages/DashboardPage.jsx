@@ -6,13 +6,13 @@ import { AnnualCashFlowChart } from '@/components/AnnualCashFlowChart'
 import { ExpensesByCategoryChart } from '@/components/ExpensesByCategoryChart'
 import { Select } from '@/components/ui/select'
 import { api } from '@/lib/api'
+import { nombreMes } from '@/lib/formatters'
 
 const currentYear = new Date().getFullYear()
 const monthOptions = Array.from({ length: 12 }, (_, index) => {
-  const monthName = new Intl.DateTimeFormat('es-GT', { month: 'long' }).format(new Date(2020, index, 1))
   return {
     value: index + 1,
-    label: monthName.charAt(0).toLocaleUpperCase('es-GT') + monthName.slice(1),
+    label: nombreMes(index + 1),
   }
 })
 const yearOptions = Array.from(

@@ -7,11 +7,9 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { api } from '@/lib/api'
+import { formatearFecha, formatearMoneda, nombreMes } from '@/lib/formatters'
 
-const MONTHS = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-]
+const MONTHS = Array.from({ length: 12 }, (_, index) => nombreMes(index + 1))
 
 const INITIAL_FILTERS = { anio: String(new Date().getFullYear()), mes: '' }
 
@@ -20,29 +18,6 @@ function responseRows(response) {
   if (Array.isArray(response)) return response
   if (Array.isArray(response?.data)) return response.data
   return []
-}
-
-// Preserve the API decimal value while adding Guatemala's separators and Q currency mark.
-function formatQuetzales(amount) {
-  const match = /^(-?)(\d+)(?:\.(\d{1,2}))?$/.exec(String(amount ?? '0').trim())
-  if (!match) return `Q ${String(amount ?? '0')}`
-
-  const [, sign, integerPart, decimalPart = ''] = match
-  const groupedInteger = new Intl.NumberFormat('es-GT').format(BigInt(integerPart))
-  return `Q ${sign}${groupedInteger}.${decimalPart.padEnd(2, '0')}`
-}
-
-function formatDate(date) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(date ?? ''))
-  if (!match) return date || '—'
-
-  const [, year, month, day] = match
-  return new Intl.DateTimeFormat('es-GT', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date(Date.UTC(Number(year), Number(month) - 1, Number(day))))
 }
 
 export default function IncomePage() {
@@ -211,12 +186,12 @@ export default function IncomePage() {
             <TableBody>
               {incomes.map((income) => (
                 <TableRow key={income.id}>
-                  <TableCell className="whitespace-nowrap text-stone-600">{formatDate(income.fecha)}</TableCell>
+                  <TableCell className="whitespace-nowrap text-stone-600">{formatearFecha(income.fecha)}</TableCell>
                   <TableCell className="max-w-64 font-medium" title={income.fuente}>
                     <span className="block truncate">{income.fuente}</span>
                   </TableCell>
                   <TableCell className="text-stone-600">{income.categoria?.nombre ?? 'Sin categoría'}</TableCell>
-                  <TableCell className="whitespace-nowrap text-right font-semibold tabular-nums">{formatQuetzales(income.monto)}</TableCell>
+                  <TableCell className="whitespace-nowrap text-right font-semibold tabular-nums">{formatearMoneda(income.monto)}</TableCell>
                   <TableCell>
                     <div className="flex justify-end gap-1">
                       <Button

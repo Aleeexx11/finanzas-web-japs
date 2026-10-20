@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { formatCurrency } from '@/lib/currency'
+import { formatearMoneda } from '@/lib/formatters'
 
 const toneClasses = {
   neutral: 'bg-[#f5f5f0] text-[#56645d]',
@@ -28,7 +28,7 @@ function DashboardMetricCard({ title, description, amount, icon: Icon, tone = 'n
           <p className="text-2xl font-semibold tracking-tight text-stone-400" aria-label="Dato no disponible">—</p>
         ) : (
           <p className={`truncate text-2xl font-semibold tracking-tight ${amountClassName || 'text-[#18251f]'}`}>
-            {formatCurrency(amount)}
+            {formatearMoneda(amount)}
           </p>
         )}
       </CardContent>

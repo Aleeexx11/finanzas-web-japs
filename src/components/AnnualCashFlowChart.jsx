@@ -10,7 +10,8 @@ import {
 } from '@/components/ui/chart'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api } from '@/lib/api'
-import { centsToDecimal, decimalToCents, formatCurrency } from '@/lib/currency'
+import { centsToDecimal, decimalToCents } from '@/lib/currency'
+import { formatearMoneda } from '@/lib/formatters'
 
 const series = [
   { key: 'ingresosCents', amountKey: 'ingresos', label: 'Ingresos', color: 'var(--chart-1)' },
@@ -31,7 +32,7 @@ const monthNames = Array.from({ length: 12 }, (_, index) => {
 
 function formatAxisTick(value) {
   if (!Number.isFinite(value)) return ''
-  return formatCurrency(centsToDecimal(BigInt(Math.round(value))))
+  return formatearMoneda(centsToDecimal(BigInt(Math.round(value))))
 }
 
 function renderBalanceDot({ cx, cy, payload }) {
@@ -157,7 +158,7 @@ function AnnualCashFlowChart({ period }) {
                     labelFormatter={(_, payload) => payload?.[0]?.payload?.mesNombre}
                     formatter={(_, __, item) => {
                       const amountKey = amountKeyBySeries[item?.dataKey]
-                      return formatCurrency(item?.payload?.[amountKey] ?? '0.00')
+                      return formatearMoneda(item?.payload?.[amountKey] ?? '0.00')
                     }}
                   />
                 )}
