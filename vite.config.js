@@ -35,7 +35,8 @@ export default defineConfig(({ mode }) => {
     "base-uri 'self'",
     "object-src 'none'",
     "form-action 'self'",
-    "script-src 'self' 'unsafe-eval'",
+    // Vite injects React Fast Refresh's module preamble inline in development HTML.
+    "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data:",
     "font-src 'self' data:",

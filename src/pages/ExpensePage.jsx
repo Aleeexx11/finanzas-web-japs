@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CircleNotch, PencilSimple, Receipt, Trash } from '@phosphor-icons/react'
+import { useCallback, useEffect, useState } from 'react'
+import { CircleNotch, PencilSimple, Plus, Receipt, Trash } from '@phosphor-icons/react'
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { ExpenseFormDialog } from '@/components/ExpenseFormDialog'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -13,7 +13,6 @@ const MONTHS = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ]
 
-const EMPTY_FORM = { fecha: '', descripcion: '', monto: '', categoria_id: '', subcategoria_id: '' }
 const INITIAL_FILTERS = { anio: String(new Date().getFullYear()), mes: '' }
 
 // Laravel resource collections can be wrapped in `data`; accept either API shape.
@@ -56,12 +55,7 @@ export default function ExpensePage() {
   const [deletingId, setDeletingId] = useState(null)
   const [deleteError, setDeleteError] = useState('')
   const [editingExpense, setEditingExpense] = useState(null)
-  const [editForm, setEditForm] = useState(EMPTY_FORM)
-  const [editError, setEditError] = useState('')
-  const [savingEdit, setSavingEdit] = useState(false)
-  const [categories, setCategories] = useState([])
-  const [categoryState, setCategoryState] = useState('idle')
-  const [categoryError, setCategoryError] = useState('')
+  const [formOpen, setFormOpen] = useState(false)
 
   // Build the API query from applied filters, keeping an empty month as “all months”.
   const loadExpenses = useCallback(async (queryFilters = appliedFilters) => {
@@ -87,32 +81,6 @@ export default function ExpensePage() {
     loadExpenses(appliedFilters)
   }, [appliedFilters, loadExpenses])
 
-  // Load accessible expense categories only when an edit dialog is opened.
-  const loadCategories = useCallback(async () => {
-    setCategoryState('loading')
-    setCategoryError('')
-
-    try {
-      const response = await api.get('/categorias?tipo=egreso')
-      setCategories(responseRows(response))
-      setCategoryState('success')
-    } catch (error) {
-      setCategoryError(error.message || 'No fue posible cargar las categorías.')
-      setCategoryState('error')
-    }
-  }, [])
-
-  useEffect(() => {
-    if (editingExpense) loadCategories()
-  }, [editingExpense?.id, loadCategories])
-
-  const availableSubcategories = useMemo(() => {
-    const selectedCategory = categories.find(
-      (category) => String(category.id) === editForm.categoria_id,
-    )
-    return responseRows(selectedCategory?.subcategorias)
-  }, [categories, editForm.categoria_id])
-
   function updateFilter(event) {
     const { name, value } = event.target
     setFilters((current) => ({ ...current, [name]: value }))
@@ -124,44 +92,8 @@ export default function ExpensePage() {
   }
 
   function openEdit(expense) {
-    // Keep amounts as strings so the decimal value is never rounded in JavaScript.
-    setEditForm({
-      fecha: expense.fecha ?? '',
-      descripcion: expense.descripcion ?? '',
-      monto: String(expense.monto ?? ''),
-      categoria_id: String(expense.categoria_id ?? ''),
-      subcategoria_id: String(expense.subcategoria_id ?? ''),
-    })
-    setEditError('')
     setEditingExpense(expense)
-  }
-
-  async function saveExpense(event) {
-    event.preventDefault()
-    if (!editingExpense) return
-
-    setSavingEdit(true)
-    setEditError('')
-
-    try {
-      // The API validates these fields in its UpdateEgresoRequest Form Request.
-      await api.put(`/egresos/${editingExpense.id}`, {
-        fecha: editForm.fecha,
-        descripcion: editForm.descripcion.trim(),
-        monto: editForm.monto.trim(),
-        categoria_id: Number(editForm.categoria_id),
-        subcategoria_id: editForm.subcategoria_id ? Number(editForm.subcategoria_id) : null,
-      })
-      setEditingExpense(null)
-      await loadExpenses(appliedFilters)
-    } catch (error) {
-      const validationMessage = Object.values(error.data?.errors ?? {})
-        .flat()
-        .find((message) => typeof message === 'string')
-      setEditError(validationMessage || error.message || 'No fue posible actualizar el egreso.')
-    } finally {
-      setSavingEdit(false)
-    }
+    setFormOpen(true)
   }
 
   async function deleteExpense() {
@@ -191,6 +123,14 @@ export default function ExpensePage() {
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">Egresos</h1>
           <p className="mt-2 text-sm text-stone-500">Consulta y administra tus gastos registrados.</p>
         </div>
+        <Button
+          type="button"
+          onClick={() => { setEditingExpense(null); setFormOpen(true) }}
+          className="h-10 rounded-xl bg-[#1d4d3d] px-4 text-sm text-white hover:bg-[#153c30]"
+        >
+          <Plus size={18} />
+          Nuevo egreso
+        </Button>
       </header>
 
       <form onSubmit={applyFilters} className="mt-7 flex flex-col gap-3 rounded-2xl border border-stone-200 bg-white p-4 sm:flex-row sm:items-end sm:p-5">
@@ -303,77 +243,15 @@ export default function ExpensePage() {
         )}
       </div>
 
-      <Dialog.Root open={Boolean(editingExpense)} onOpenChange={(open) => { if (!open && !savingEdit) setEditingExpense(null) }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar egreso</DialogTitle>
-            <DialogDescription>Actualiza la información del movimiento y guarda los cambios.</DialogDescription>
-          </DialogHeader>
-
-          {categoryState === 'loading' && (
-            <p role="status" className="mb-4 flex items-center gap-2 text-sm text-stone-500">
-              <CircleNotch size={17} className="animate-spin" /> Cargando categorías…
-            </p>
-          )}
-          {categoryState === 'error' && (
-            <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-              <p>{categoryError}</p>
-              <Button type="button" variant="link" onClick={loadCategories} className="mt-1 h-auto px-0 text-red-700">Reintentar</Button>
-            </div>
-          )}
-
-          <form onSubmit={saveExpense} className="space-y-4">
-            <div>
-              <label htmlFor="edit-expense-date" className="mb-1.5 block text-sm font-medium">Fecha</label>
-              <Input id="edit-expense-date" type="date" required value={editForm.fecha} onChange={(event) => setEditForm((current) => ({ ...current, fecha: event.target.value }))} />
-            </div>
-            <div>
-              <label htmlFor="edit-expense-description" className="mb-1.5 block text-sm font-medium">Descripción</label>
-              <Input id="edit-expense-description" required maxLength={150} value={editForm.descripcion} onChange={(event) => setEditForm((current) => ({ ...current, descripcion: event.target.value }))} />
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="edit-expense-category" className="mb-1.5 block text-sm font-medium">Categoría</label>
-                <Select
-                  id="edit-expense-category"
-                  value={editForm.categoria_id}
-                  required
-                  disabled={categoryState !== 'success'}
-                  onChange={(event) => setEditForm((current) => ({ ...current, categoria_id: event.target.value, subcategoria_id: '' }))}
-                >
-                  <option value="" disabled>Selecciona una categoría</option>
-                  {categories.map((category) => <option key={category.id} value={String(category.id)}>{category.nombre}</option>)}
-                </Select>
-              </div>
-              <div>
-                <label htmlFor="edit-expense-subcategory" className="mb-1.5 block text-sm font-medium">Subcategoría</label>
-                <Select
-                  id="edit-expense-subcategory"
-                  value={editForm.subcategoria_id}
-                  disabled={categoryState !== 'success' || availableSubcategories.length === 0}
-                  onChange={(event) => setEditForm((current) => ({ ...current, subcategoria_id: event.target.value }))}
-                >
-                  <option value="">Sin subcategoría</option>
-                  {availableSubcategories.map((subcategory) => <option key={subcategory.id} value={String(subcategory.id)}>{subcategory.nombre}</option>)}
-                </Select>
-              </div>
-            </div>
-            <div>
-              <label htmlFor="edit-expense-amount" className="mb-1.5 block text-sm font-medium">Monto (Q)</label>
-              <Input id="edit-expense-amount" inputMode="decimal" required value={editForm.monto} onChange={(event) => setEditForm((current) => ({ ...current, monto: event.target.value }))} placeholder="0.00" />
-            </div>
-
-            {editError && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{editError}</p>}
-
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="outline" disabled={savingEdit} onClick={() => setEditingExpense(null)} className="h-10 rounded-xl px-4">Cancelar</Button>
-              <Button type="submit" disabled={savingEdit || categoryState !== 'success'} className="h-10 rounded-xl bg-[#1d4d3d] px-4 text-white hover:bg-[#153c30]">
-                {savingEdit ? 'Guardando…' : 'Guardar cambios'}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog.Root>
+      <ExpenseFormDialog
+        open={formOpen}
+        onOpenChange={(open) => {
+          setFormOpen(open)
+          if (!open) setEditingExpense(null)
+        }}
+        expense={editingExpense}
+        onSuccess={() => loadExpenses(appliedFilters)}
+      />
 
       <AlertDialog.Root
         open={Boolean(expenseToDelete)}
