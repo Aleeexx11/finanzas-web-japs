@@ -5,9 +5,7 @@ import { DashboardMetricCard } from '@/components/DashboardMetricCard'
 import { Select } from '@/components/ui/select'
 import { api } from '@/lib/api'
 
-const now = new Date()
-const selectedYear = now.getFullYear()
-const currentMonth = now.getMonth() + 1
+const currentYear = new Date().getFullYear()
 const monthOptions = Array.from({ length: 12 }, (_, index) => {
   const monthName = new Intl.DateTimeFormat('es-GT', { month: 'long' }).format(new Date(2020, index, 1))
   return {
@@ -15,6 +13,10 @@ const monthOptions = Array.from({ length: 12 }, (_, index) => {
     label: monthName.charAt(0).toLocaleUpperCase('es-GT') + monthName.slice(1),
   }
 })
+const yearOptions = Array.from(
+  { length: currentYear - 1900 + 1 },
+  (_, index) => currentYear - index,
+)
 
 function getMonthName(month) {
   return monthOptions.find((option) => option.value === month)?.label ?? ''
@@ -22,14 +24,20 @@ function getMonthName(month) {
 
 export default function DashboardPage() {
   const { user } = useAuth()
-  const [month, setMonth] = useState(currentMonth)
+  const [period, setPeriod] = useState(() => {
+    const currentDate = new Date()
+    return { month: currentDate.getMonth() + 1, year: currentDate.getFullYear() }
+  })
   const [summary, setSummary] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
     let active = true
-    const query = new URLSearchParams({ anio: String(selectedYear), mes: String(month) })
+    const query = new URLSearchParams({
+      anio: String(period.year),
+      mes: String(period.month),
+    })
 
     setIsLoading(true)
     setError('')
@@ -49,10 +57,10 @@ export default function DashboardPage() {
     return () => {
       active = false
     }
-  }, [month])
+  }, [period.month, period.year])
 
   const metrics = useMemo(() => {
-    const monthName = getMonthName(month)
+    const monthName = getMonthName(period.month)
     const balance = String(summary?.balance_mes ?? '0.00')
     const hasNonZeroDigits = /[1-9]/.test(balance)
     const isPositiveBalance = !balance.startsWith('-') && hasNonZeroDigits
@@ -87,13 +95,13 @@ export default function DashboardPage() {
       },
       {
         title: 'Acumulado del año',
-        description: `Hasta ${monthName.toLocaleLowerCase('es-GT')} · ${selectedYear}`,
+        description: `Hasta ${monthName.toLocaleLowerCase('es-GT')} · ${period.year}`,
         amount: summary?.balance_acumulado,
         icon: ChartLineUp,
         tone: 'neutral',
       },
     ]
-  }, [month, summary])
+  }, [period, summary])
 
   return (
     <>
@@ -104,20 +112,37 @@ export default function DashboardPage() {
           <p className="mt-2 text-sm text-stone-500">Este es tu espacio para llevar tus finanzas con claridad.</p>
         </div>
 
-        <label className="flex w-full items-center gap-3 sm:w-auto">
-          <CalendarBlank className="shrink-0 text-[#65816f]" size={19} aria-hidden="true" />
-          <span className="sr-only">Selecciona el mes del resumen</span>
-          <Select
-            value={month}
-            onChange={(event) => setMonth(Number(event.target.value))}
-            aria-label="Mes del resumen"
-            className="w-full min-w-44 sm:w-48"
-          >
-            {monthOptions.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </Select>
-        </label>
+        <div className="flex w-full items-end gap-3 sm:w-auto">
+          <CalendarBlank className="mb-2.5 shrink-0 text-[#65816f]" size={19} aria-hidden="true" />
+          <div className="grid min-w-0 flex-1 grid-cols-2 gap-3 sm:flex-none">
+            <label className="grid min-w-0 gap-1.5">
+              <span className="text-xs font-medium text-stone-500">Mes</span>
+              <Select
+                value={period.month}
+                onChange={(event) => setPeriod((current) => ({ ...current, month: Number(event.target.value) }))}
+                aria-label="Mes del resumen"
+                className="min-w-0 sm:min-w-44"
+              >
+                {monthOptions.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </Select>
+            </label>
+            <label className="grid min-w-0 gap-1.5">
+              <span className="text-xs font-medium text-stone-500">Año</span>
+              <Select
+                value={period.year}
+                onChange={(event) => setPeriod((current) => ({ ...current, year: Number(event.target.value) }))}
+                aria-label="Año del resumen"
+                className="min-w-0 sm:w-28"
+              >
+                {yearOptions.map((year) => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </Select>
+            </label>
+          </div>
+        </div>
       </header>
 
       {error && (
