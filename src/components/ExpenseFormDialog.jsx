@@ -14,6 +14,7 @@ const EMPTY_FORM = {
   descripcion: '',
   monto: '',
   notas: '',
+  recurrente: false,
 }
 
 // Laravel resources may wrap collection items in a `data` property.
@@ -34,6 +35,7 @@ function formValues(expense) {
     descripcion: expense.descripcion ?? '',
     monto: String(expense.monto ?? ''),
     notas: expense.notas ?? '',
+    recurrente: false,
   }
 }
 
@@ -133,8 +135,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense = null, onSucces
   )
 
   function updateField(event) {
-    const { name, value } = event.target
-    setValues((current) => ({ ...current, [name]: value }))
+    const { name, value, type, checked } = event.target
+    setValues((current) => ({ ...current, [name]: type === 'checkbox' ? checked : value }))
     setFieldErrors((current) => ({ ...current, [name]: undefined }))
     setSubmitError('')
   }
@@ -166,6 +168,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense = null, onSucces
       descripcion: values.descripcion,
       monto: values.monto,
       notas: values.notas || null,
+      recurrente: values.recurrente,
     }
 
     try {
@@ -317,13 +320,20 @@ export function ExpenseFormDialog({ open, onOpenChange, expense = null, onSucces
             <FieldErrors id="egreso-notas-error" messages={fieldMessages(fieldErrors, 'notas')} />
           </div>
 
+          {!isEditing && (
+            <label className="flex items-center gap-3 rounded-xl border border-border bg-muted/40 p-3 text-sm">
+              <input type="checkbox" name="recurrente" checked={values.recurrente} onChange={updateField} className="size-4 accent-cyan-400" />
+              <span><span className="block font-medium">Repetir cada mes</span><span className="text-xs text-muted-foreground">Se programará para el mes siguiente.</span></span>
+            </label>
+          )}
+
           {submitError && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{submitError}</p>}
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" disabled={isSubmitting} onClick={() => onOpenChange(false)} className="h-10 rounded-xl px-4">
               Cancelar
             </Button>
-            <Button type="submit" disabled={isSubmitting || categoriesLoading || subcategoriesLoading} className="h-10 min-w-36 rounded-xl bg-[#1d4d3d] px-4 text-white hover:bg-[#153c30]">
+            <Button type="submit" disabled={isSubmitting || categoriesLoading || subcategoriesLoading} className="h-10 min-w-36 rounded-xl bg-[#26c9e8] px-4 font-semibold text-[#06202d] hover:bg-[#58def2]">
               {isSubmitting && <CircleNotch size={16} className="animate-spin" />}
               {isSubmitting ? 'Guardando…' : isEditing ? 'Guardar cambios' : 'Crear egreso'}
             </Button>

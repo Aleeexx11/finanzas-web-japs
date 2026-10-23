@@ -7,6 +7,9 @@ import RegisterPage from '@/pages/RegisterPage'
 import DashboardPage from '@/pages/DashboardPage'
 import IncomePage from '@/pages/IncomePage'
 import ExpensePage from '@/pages/ExpensePage'
+import BudgetsPage from '@/pages/BudgetsPage'
+import ScheduledMovementsPage from '@/pages/ScheduledMovementsPage'
+import SavingsGoalsPage from '@/pages/SavingsGoalsPage'
 
 function AppRoutes() {
   return (
@@ -21,6 +24,9 @@ function AppRoutes() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/ingresos" element={<IncomePage />} />
           <Route path="/egresos" element={<ExpensePage />} />
+          <Route path="/presupuestos" element={<BudgetsPage />} />
+          <Route path="/metas" element={<SavingsGoalsPage />} />
+          <Route path="/programados" element={<ScheduledMovementsPage />} />
         </Route>
       </Route>
 

@@ -49,12 +49,12 @@ export default function RegisterPage() {
 
   return (
     <AuthLayout
-      eyebrow="Empieza con el primer paso"
-      title="Crea tu cuenta"
-      description="Solo necesitas unos datos para comenzar a ordenar tus finanzas."
-      footer={<>¿Ya tienes cuenta? <Link className="font-semibold text-[#25604d] hover:underline" to="/login">Inicia sesión</Link></>}
+      eyebrow="Empieza con claridad"
+      title="Crea tu espacio financiero"
+      description="Registra tus ingresos y gastos para entender mejor cómo se mueve tu dinero."
+      footer={<>¿Ya eres parte de Quetzal? <Link className="auth-link font-semibold hover:underline" to="/login">Inicia sesión</Link></>}
     >
-      <form className="space-y-4" onSubmit={handleSubmit} noValidate>
+      <form className="auth-form-enter space-y-4" onSubmit={handleSubmit} noValidate>
         {message && (
           <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {message}
@@ -75,7 +75,7 @@ export default function RegisterPage() {
             aria-invalid={Boolean(nameError)}
             aria-describedby={nameError ? 'name-error' : undefined}
             placeholder="Cómo te llamas"
-            className="h-11 w-full rounded-xl border border-stone-200 bg-white px-4 text-sm outline-none transition placeholder:text-stone-400 focus:border-[#6d9d79] focus:ring-4 focus:ring-[#6d9d79]/15 aria-invalid:border-red-400"
+            className="auth-input h-11 w-full rounded-xl border px-4 text-sm outline-none transition"
           />
           {nameError && <p id="name-error" className="mt-1.5 text-xs text-red-600">{nameError}</p>}
         </div>
@@ -93,7 +93,7 @@ export default function RegisterPage() {
             aria-invalid={Boolean(emailError)}
             aria-describedby={emailError ? 'email-error' : undefined}
             placeholder="tu@correo.com"
-            className="h-11 w-full rounded-xl border border-stone-200 bg-white px-4 text-sm outline-none transition placeholder:text-stone-400 focus:border-[#6d9d79] focus:ring-4 focus:ring-[#6d9d79]/15 aria-invalid:border-red-400"
+            className="auth-input h-11 w-full rounded-xl border px-4 text-sm outline-none transition"
           />
           {emailError && <p id="email-error" className="mt-1.5 text-xs text-red-600">{emailError}</p>}
         </div>
@@ -112,7 +112,7 @@ export default function RegisterPage() {
               aria-invalid={Boolean(passwordError)}
               aria-describedby={passwordError ? 'password-error' : undefined}
               placeholder="Al menos 8 caracteres"
-              className="h-11 w-full rounded-xl border border-stone-200 bg-white px-4 pr-12 text-sm outline-none transition placeholder:text-stone-400 focus:border-[#6d9d79] focus:ring-4 focus:ring-[#6d9d79]/15 aria-invalid:border-red-400"
+              className="auth-input h-11 w-full rounded-xl border px-4 pr-12 text-sm outline-none transition"
             />
             <button
               type="button"
@@ -139,13 +139,13 @@ export default function RegisterPage() {
             aria-invalid={Boolean(confirmationError)}
             aria-describedby={confirmationError ? 'confirmation-error' : undefined}
             placeholder="Escríbela nuevamente"
-            className="h-11 w-full rounded-xl border border-stone-200 bg-white px-4 text-sm outline-none transition placeholder:text-stone-400 focus:border-[#6d9d79] focus:ring-4 focus:ring-[#6d9d79]/15 aria-invalid:border-red-400"
+            className="auth-input h-11 w-full rounded-xl border px-4 text-sm outline-none transition"
           />
           {confirmationError && <p id="confirmation-error" className="mt-1.5 text-xs text-red-600">{confirmationError}</p>}
         </div>
 
-        <Button type="submit" disabled={submitting} className="h-12 w-full rounded-xl bg-[#1d4d3d] text-sm font-semibold text-white hover:bg-[#153c30]">
-          {submitting ? 'Creando cuenta…' : 'Crear cuenta'}
+        <Button type="submit" disabled={submitting} className="auth-submit-button h-12 w-full rounded-xl text-sm font-semibold text-white">
+          {submitting ? 'Preparando tu espacio…' : 'Crear mi cuenta'}
           {!submitting && <ArrowRight size={18} className="ml-1" />}
         </Button>
       </form>

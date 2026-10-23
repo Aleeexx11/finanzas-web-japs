@@ -1,12 +1,15 @@
-import { useCallback, useEffect, useState } from 'react'
-import { CircleNotch, Coins, PencilSimple, Plus, Trash } from '@phosphor-icons/react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { CalendarBlank, CircleNotch, Coins, PencilSimple, Plus, Receipt, Trash } from '@phosphor-icons/react'
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { IncomeFormDialog } from '@/components/IncomeFormDialog'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { DashboardMetricCard } from '@/components/DashboardMetricCard'
 import { api } from '@/lib/api'
+import { centsToDecimal, decimalToCents } from '@/lib/currency'
 import { formatearFecha, formatearMoneda, nombreMes } from '@/lib/formatters'
 
 const MONTHS = Array.from({ length: 12 }, (_, index) => nombreMes(index + 1))
@@ -21,8 +24,15 @@ function responseRows(response) {
 }
 
 export default function IncomePage() {
-  const [filters, setFilters] = useState(INITIAL_FILTERS)
-  const [appliedFilters, setAppliedFilters] = useState(INITIAL_FILTERS)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [filters, setFilters] = useState(() => ({
+    anio: searchParams.get('anio') ?? INITIAL_FILTERS.anio,
+    mes: searchParams.get('mes') ?? INITIAL_FILTERS.mes,
+  }))
+  const [appliedFilters, setAppliedFilters] = useState(() => ({
+    anio: searchParams.get('anio') ?? INITIAL_FILTERS.anio,
+    mes: searchParams.get('mes') ?? INITIAL_FILTERS.mes,
+  }))
   const [incomes, setIncomes] = useState([])
   const [listState, setListState] = useState('loading')
   const [listError, setListError] = useState('')
@@ -31,6 +41,21 @@ export default function IncomePage() {
   const [deleteError, setDeleteError] = useState('')
   const [editingIncome, setEditingIncome] = useState(null)
   const [formOpen, setFormOpen] = useState(false)
+
+  const metrics = useMemo(() => {
+    const total = incomes.reduce((sum, income) => sum + decimalToCents(income.monto), 0n)
+    const count = BigInt(incomes.length)
+    const average = count > 0n ? (total + (count / 2n)) / count : 0n
+    const periodLabel = appliedFilters.mes
+      ? `${nombreMes(Number(appliedFilters.mes))} ${appliedFilters.anio}`
+      : `Año ${appliedFilters.anio}`
+
+    return [
+      { title: 'Total del período', description: periodLabel, amount: centsToDecimal(total), icon: Coins, tone: 'income', amountClassName: 'text-emerald-300' },
+      { title: 'Promedio por ingreso', description: 'Monto promedio registrado', amount: centsToDecimal(average), icon: CalendarBlank, tone: 'neutral', amountClassName: 'text-cyan-300' },
+      { title: 'Registros', description: 'Movimientos en la lista', displayValue: incomes.length.toLocaleString('es-GT'), icon: Receipt, tone: 'neutral' },
+    ]
+  }, [appliedFilters, incomes])
 
   // Send only selected filters; an empty month means that all months are included.
   const loadIncomes = useCallback(async (queryFilters = appliedFilters) => {
@@ -65,6 +90,10 @@ export default function IncomePage() {
   function applyFilters(event) {
     event.preventDefault()
     setAppliedFilters({ ...filters })
+    const query = new URLSearchParams()
+    if (filters.anio) query.set('anio', filters.anio)
+    if (filters.mes) query.set('mes', filters.mes)
+    setSearchParams(query)
   }
 
   function openEdit(income) {
@@ -95,21 +124,25 @@ export default function IncomePage() {
     <section>
       <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#65816f]">Movimientos</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">Ingresos</h1>
-          <p className="mt-2 text-sm text-stone-500">Consulta y administra el dinero que recibes.</p>
+          <p className="eyebrow">Movimientos</p>
+          <h1 className="page-title mt-2">Ingresos</h1>
+          <p className="page-description mt-2">Organiza el dinero que recibes.</p>
         </div>
         <Button
           type="button"
           onClick={() => { setEditingIncome(null); setFormOpen(true) }}
-          className="h-10 rounded-xl bg-[#1d4d3d] px-4 text-sm text-white hover:bg-[#153c30]"
+          className="h-10 rounded-xl bg-[#26c9e8] px-4 text-sm font-semibold text-[#06202d] hover:bg-[#58def2]"
         >
           <Plus size={18} />
           Nuevo ingreso
         </Button>
       </header>
 
-      <form onSubmit={applyFilters} className="mt-7 flex flex-col gap-3 rounded-2xl border border-stone-200 bg-white p-4 sm:flex-row sm:items-end sm:p-5">
+      <section aria-label="Resumen de ingresos" aria-busy={listState === 'loading'} className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {metrics.map((metric) => <DashboardMetricCard key={metric.title} {...metric} isLoading={listState === 'loading'} />)}
+      </section>
+
+      <form onSubmit={applyFilters} className="mt-6 flex flex-col gap-3 rounded-2xl border border-stone-200 bg-white p-4 sm:flex-row sm:items-end sm:p-5">
         <div className="w-full sm:max-w-36">
           <label htmlFor="income-year" className="mb-1.5 block text-xs font-medium text-stone-600">Año</label>
           <Input
@@ -130,7 +163,7 @@ export default function IncomePage() {
             {MONTHS.map((month, index) => <option key={month} value={String(index + 1)}>{month}</option>)}
           </Select>
         </div>
-        <Button type="submit" className="h-10 rounded-xl bg-[#1d4d3d] px-4 text-sm text-white hover:bg-[#153c30]">
+        <Button type="submit" className="h-10 rounded-xl bg-[#26c9e8] px-4 text-sm font-semibold text-[#06202d] hover:bg-[#58def2]">
           Aplicar filtros
         </Button>
       </form>
@@ -158,13 +191,13 @@ export default function IncomePage() {
               <Coins size={24} weight="duotone" />
             </span>
             <h2 className="mt-4 font-semibold">Todavía no hay ingresos</h2>
-            <p className="mt-2 max-w-sm text-sm leading-6 text-stone-500">
+            <p className="mt-2 max-w-sm text-sm leading-6 text-slate-400">
               Registra tu primer ingreso para este período y aparecerá en esta lista.
             </p>
             <Button
               type="button"
               onClick={() => { setEditingIncome(null); setFormOpen(true) }}
-              className="mt-4 h-9 rounded-xl bg-[#1d4d3d] px-4 text-sm text-white hover:bg-[#153c30]"
+              className="mt-4 h-9 rounded-xl bg-[#26c9e8] px-4 text-sm font-semibold text-[#06202d] hover:bg-[#58def2]"
             >
               <Plus size={16} />
               Crear primer ingreso
@@ -191,7 +224,7 @@ export default function IncomePage() {
                     <span className="block truncate">{income.fuente}</span>
                   </TableCell>
                   <TableCell className="text-stone-600">{income.categoria?.nombre ?? 'Sin categoría'}</TableCell>
-                  <TableCell className="whitespace-nowrap text-right font-semibold tabular-nums">{formatearMoneda(income.monto)}</TableCell>
+                  <TableCell className="whitespace-nowrap text-right font-semibold tabular-nums text-emerald-300">{formatearMoneda(income.monto)}</TableCell>
                   <TableCell>
                     <div className="flex justify-end gap-1">
                       <Button

@@ -152,6 +152,10 @@ export function put(path, body, options = {}) {
   return request(path, { ...options, method: 'PUT', body })
 }
 
+export function patch(path, body, options = {}) {
+  return request(path, { ...options, method: 'PATCH', body })
+}
+
 export function deleteRequest(path, options = {}) {
   return request(path, { ...options, method: 'DELETE' })
 }
@@ -160,5 +164,6 @@ export const api = {
   get,
   post,
   put,
+  patch,
   delete: deleteRequest,
 }

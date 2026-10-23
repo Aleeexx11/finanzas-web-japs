@@ -10,7 +10,7 @@ export function DialogContent({ className, children, ...props }) {
       <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/35 data-ending-style:opacity-0 data-starting-style:opacity-0" />
       <Dialog.Popup
         className={cn(
-          'fixed left-1/2 top-1/2 z-50 max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-stone-200 bg-white p-6 text-[#18251f] shadow-xl outline-none',
+          'financial-dialog fixed left-1/2 top-1/2 z-50 max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-stone-200 bg-white p-6 text-[#18251f] shadow-xl outline-none',
           className,
         )}
         {...props}

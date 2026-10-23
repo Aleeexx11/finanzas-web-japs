@@ -90,7 +90,7 @@ function ExpensesByCategoryChart({ period }) {
   const periodLabel = getPeriodLabel(period)
 
   return (
-    <Card className="mt-8 overflow-hidden rounded-2xl border-border bg-card py-0 shadow-sm">
+    <Card className="mt-0 overflow-hidden rounded-2xl border-border bg-card py-0 shadow-sm">
       <CardHeader className="gap-1 border-b border-border/70 px-5 py-5 sm:px-6">
         <CardTitle className="text-base">Egresos por categoría</CardTitle>
         <CardDescription>Distribución de egresos en {periodLabel}</CardDescription>

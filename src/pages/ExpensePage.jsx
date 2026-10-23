@@ -1,12 +1,15 @@
-import { useCallback, useEffect, useState } from 'react'
-import { CircleNotch, PencilSimple, Plus, Receipt, Trash } from '@phosphor-icons/react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { ChartPie, CircleNotch, PencilSimple, Plus, Receipt, TrendDown, Trash } from '@phosphor-icons/react'
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { ExpenseFormDialog } from '@/components/ExpenseFormDialog'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { DashboardMetricCard } from '@/components/DashboardMetricCard'
 import { api } from '@/lib/api'
+import { centsToDecimal, decimalToCents } from '@/lib/currency'
 import { formatearFecha, formatearMoneda, nombreMes } from '@/lib/formatters'
 
 const MONTHS = Array.from({ length: 12 }, (_, index) => nombreMes(index + 1))
@@ -21,8 +24,15 @@ function responseRows(response) {
 }
 
 export default function ExpensePage() {
-  const [filters, setFilters] = useState(INITIAL_FILTERS)
-  const [appliedFilters, setAppliedFilters] = useState(INITIAL_FILTERS)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [filters, setFilters] = useState(() => ({
+    anio: searchParams.get('anio') ?? INITIAL_FILTERS.anio,
+    mes: searchParams.get('mes') ?? INITIAL_FILTERS.mes,
+  }))
+  const [appliedFilters, setAppliedFilters] = useState(() => ({
+    anio: searchParams.get('anio') ?? INITIAL_FILTERS.anio,
+    mes: searchParams.get('mes') ?? INITIAL_FILTERS.mes,
+  }))
   const [expenses, setExpenses] = useState([])
   const [listState, setListState] = useState('loading')
   const [listError, setListError] = useState('')
@@ -31,6 +41,25 @@ export default function ExpensePage() {
   const [deleteError, setDeleteError] = useState('')
   const [editingExpense, setEditingExpense] = useState(null)
   const [formOpen, setFormOpen] = useState(false)
+
+  const metrics = useMemo(() => {
+    const total = expenses.reduce((sum, expense) => sum + decimalToCents(expense.monto), 0n)
+    const categories = expenses.reduce((totals, expense) => {
+      const name = expense.categoria?.nombre ?? 'Sin categoría'
+      totals.set(name, (totals.get(name) ?? 0n) + decimalToCents(expense.monto))
+      return totals
+    }, new Map())
+    const topCategory = [...categories.entries()].sort((left, right) => left[1] === right[1] ? 0 : left[1] > right[1] ? -1 : 1)[0]
+    const periodLabel = appliedFilters.mes
+      ? `${nombreMes(Number(appliedFilters.mes))} ${appliedFilters.anio}`
+      : `Año ${appliedFilters.anio}`
+
+    return [
+      { title: 'Gastado en el período', description: periodLabel, amount: centsToDecimal(total), icon: TrendDown, tone: 'expense', amountClassName: 'text-rose-300' },
+      { title: 'Categoría principal', description: topCategory ? formatearMoneda(centsToDecimal(topCategory[1])) : 'Sin movimientos', displayValue: topCategory?.[0] ?? '—', icon: ChartPie, tone: 'neutral', amountClassName: 'text-violet-300' },
+      { title: 'Movimientos', description: 'Egresos en la lista', displayValue: expenses.length.toLocaleString('es-GT'), icon: Receipt, tone: 'neutral' },
+    ]
+  }, [appliedFilters, expenses])
 
   // Build the API query from applied filters, keeping an empty month as “all months”.
   const loadExpenses = useCallback(async (queryFilters = appliedFilters) => {
@@ -64,6 +93,10 @@ export default function ExpensePage() {
   function applyFilters(event) {
     event.preventDefault()
     setAppliedFilters({ ...filters })
+    const query = new URLSearchParams()
+    if (filters.anio) query.set('anio', filters.anio)
+    if (filters.mes) query.set('mes', filters.mes)
+    setSearchParams(query)
   }
 
   function openEdit(expense) {
@@ -94,21 +127,25 @@ export default function ExpensePage() {
     <section>
       <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#65816f]">Movimientos</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">Egresos</h1>
-          <p className="mt-2 text-sm text-stone-500">Consulta y administra tus gastos registrados.</p>
+          <p className="eyebrow text-violet-300">Movimientos</p>
+          <h1 className="page-title mt-2">Egresos</h1>
+          <p className="page-description mt-2">Comprende y organiza tus gastos.</p>
         </div>
         <Button
           type="button"
           onClick={() => { setEditingExpense(null); setFormOpen(true) }}
-          className="h-10 rounded-xl bg-[#1d4d3d] px-4 text-sm text-white hover:bg-[#153c30]"
+          className="h-10 rounded-xl bg-rose-400 px-4 text-sm font-semibold text-[#241119] hover:bg-rose-300"
         >
           <Plus size={18} />
           Nuevo egreso
         </Button>
       </header>
 
-      <form onSubmit={applyFilters} className="mt-7 flex flex-col gap-3 rounded-2xl border border-stone-200 bg-white p-4 sm:flex-row sm:items-end sm:p-5">
+      <section aria-label="Resumen de egresos" aria-busy={listState === 'loading'} className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {metrics.map((metric) => <DashboardMetricCard key={metric.title} {...metric} isLoading={listState === 'loading'} />)}
+      </section>
+
+      <form onSubmit={applyFilters} className="mt-6 flex flex-col gap-3 rounded-2xl border border-stone-200 bg-white p-4 sm:flex-row sm:items-end sm:p-5">
         <div className="w-full sm:max-w-36">
           <label htmlFor="expense-year" className="mb-1.5 block text-xs font-medium text-stone-600">Año</label>
           <Input
@@ -129,7 +166,7 @@ export default function ExpensePage() {
             {MONTHS.map((month, index) => <option key={month} value={String(index + 1)}>{month}</option>)}
           </Select>
         </div>
-        <Button type="submit" className="h-10 rounded-xl bg-[#1d4d3d] px-4 text-sm text-white hover:bg-[#153c30]">
+        <Button type="submit" className="h-10 rounded-xl bg-[#26c9e8] px-4 text-sm font-semibold text-[#06202d] hover:bg-[#58def2]">
           Aplicar filtros
         </Button>
       </form>
@@ -157,7 +194,7 @@ export default function ExpensePage() {
               <Receipt size={24} weight="duotone" />
             </span>
             <h2 className="mt-4 font-semibold">Todavía no hay egresos</h2>
-            <p className="mt-2 max-w-sm text-sm leading-6 text-stone-500">
+            <p className="mt-2 max-w-sm text-sm leading-6 text-slate-400">
               Registra tu primer egreso para este período y aparecerá en esta lista.
             </p>
           </div>
@@ -184,7 +221,7 @@ export default function ExpensePage() {
                   </TableCell>
                   <TableCell className="text-stone-600">{expense.categoria?.nombre ?? 'Sin categoría'}</TableCell>
                   <TableCell className="text-stone-500">{expense.subcategoria?.nombre ?? '—'}</TableCell>
-                  <TableCell className="whitespace-nowrap text-right font-semibold tabular-nums">{formatearMoneda(expense.monto)}</TableCell>
+                  <TableCell className="whitespace-nowrap text-right font-semibold tabular-nums text-rose-300">{formatearMoneda(expense.monto)}</TableCell>
                   <TableCell>
                     <div className="flex justify-end gap-1">
                       <Button

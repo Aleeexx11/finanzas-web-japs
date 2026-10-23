@@ -4,6 +4,7 @@ import { useAuth } from '@/context/useAuth'
 import { DashboardMetricCard } from '@/components/DashboardMetricCard'
 import { AnnualCashFlowChart } from '@/components/AnnualCashFlowChart'
 import { ExpensesByCategoryChart } from '@/components/ExpensesByCategoryChart'
+import { DashboardLowerPanels } from '@/components/DashboardLowerPanels'
 import { Select } from '@/components/ui/select'
 import { api } from '@/lib/api'
 import { nombreMes } from '@/lib/formatters'
@@ -63,6 +64,7 @@ export default function DashboardPage() {
 
   const metrics = useMemo(() => {
     const monthName = getMonthName(period.month)
+    const periodQuery = new URLSearchParams({ anio: String(period.year), mes: String(period.month) }).toString()
     const balance = String(summary?.balance_mes ?? '0.00')
     const hasNonZeroDigits = /[1-9]/.test(balance)
     const isPositiveBalance = !balance.startsWith('-') && hasNonZeroDigits
@@ -75,6 +77,7 @@ export default function DashboardPage() {
         amount: summary?.ingresos_mes,
         icon: TrendUp,
         tone: 'income',
+        to: `/ingresos?${periodQuery}`,
       },
       {
         title: 'Egresos del mes',
@@ -82,6 +85,7 @@ export default function DashboardPage() {
         amount: summary?.egresos_mes,
         icon: TrendDown,
         tone: 'expense',
+        to: `/egresos?${periodQuery}`,
       },
       {
         title: 'Balance del mes',
@@ -90,10 +94,10 @@ export default function DashboardPage() {
         icon: Wallet,
         tone: 'neutral',
         amountClassName: isPositiveBalance
-          ? 'text-emerald-700'
+          ? 'text-emerald-300'
           : isNegativeBalance
-            ? 'text-rose-700'
-            : 'text-[#18251f]',
+            ? 'text-rose-300'
+            : 'text-slate-100',
       },
       {
         title: 'Acumulado del año',
@@ -101,6 +105,7 @@ export default function DashboardPage() {
         amount: summary?.balance_acumulado,
         icon: ChartLineUp,
         tone: 'neutral',
+        amountClassName: 'text-violet-300',
       },
     ]
   }, [period, summary])
@@ -109,16 +114,16 @@ export default function DashboardPage() {
     <>
       <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#65816f]">Resumen</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">Hola, {user?.name}</h1>
-          <p className="mt-2 text-sm text-stone-500">Este es tu espacio para llevar tus finanzas con claridad.</p>
+          <p className="eyebrow">Resumen</p>
+          <h1 className="page-title mt-2">Hola, {user?.name}</h1>
+          <p className="page-description mt-2">Este es tu espacio para llevar tus finanzas con claridad.</p>
         </div>
 
         <div className="flex w-full items-end gap-3 sm:w-auto">
-          <CalendarBlank className="mb-2.5 shrink-0 text-[#65816f]" size={19} aria-hidden="true" />
+          <CalendarBlank className="mb-2.5 shrink-0 text-[#35d9f1]" size={19} aria-hidden="true" />
           <div className="grid min-w-0 flex-1 grid-cols-2 gap-3 sm:flex-none">
             <label className="grid min-w-0 gap-1.5">
-              <span className="text-xs font-medium text-stone-500">Mes</span>
+              <span className="form-label">Mes</span>
               <Select
                 value={period.month}
                 onChange={(event) => setPeriod((current) => ({ ...current, month: Number(event.target.value) }))}
@@ -131,7 +136,7 @@ export default function DashboardPage() {
               </Select>
             </label>
             <label className="grid min-w-0 gap-1.5">
-              <span className="text-xs font-medium text-stone-500">Año</span>
+              <span className="form-label">Año</span>
               <Select
                 value={period.year}
                 onChange={(event) => setPeriod((current) => ({ ...current, year: Number(event.target.value) }))}
@@ -148,7 +153,7 @@ export default function DashboardPage() {
       </header>
 
       {error && (
-        <p role="alert" className="mt-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <p role="alert" className="mt-6 rounded-xl border border-rose-300/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
           {error}
         </p>
       )}
@@ -163,8 +168,11 @@ export default function DashboardPage() {
         ))}
       </section>
 
-      <ExpensesByCategoryChart period={period} />
-      <AnnualCashFlowChart period={period} />
+      <div className="mt-8 grid gap-5 xl:grid-cols-[minmax(0,1.8fr)_minmax(20rem,1fr)]">
+        <AnnualCashFlowChart period={period} />
+        <ExpensesByCategoryChart period={period} />
+      </div>
+      <DashboardLowerPanels period={period} summary={summary} />
     </>
   )
 }

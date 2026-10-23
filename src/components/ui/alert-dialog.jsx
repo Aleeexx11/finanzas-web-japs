@@ -10,7 +10,7 @@ export function AlertDialogContent({ className, children, ...props }) {
       <AlertDialog.Backdrop className="fixed inset-0 z-50 bg-black/35 data-ending-style:opacity-0 data-starting-style:opacity-0" />
       <AlertDialog.Popup
         className={cn(
-          'fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-stone-200 bg-white p-6 text-[#18251f] shadow-xl outline-none',
+          'financial-dialog fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-stone-200 bg-white p-6 text-[#18251f] shadow-xl outline-none',
           className,
         )}
         {...props}

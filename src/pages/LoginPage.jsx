@@ -48,12 +48,12 @@ export default function LoginPage() {
 
   return (
     <AuthLayout
-      eyebrow="Qué bueno verte de nuevo"
+      eyebrow="Qué bueno tenerte de vuelta"
       title="Inicia sesión"
-      description="Entra a tu espacio y continúa llevando tus cuentas con claridad."
-      footer={<>¿Aún no tienes una cuenta? <Link className="font-semibold text-[#25604d] hover:underline" to="/registro">Regístrate</Link></>}
+      description="Ingresa para revisar tus movimientos y seguir el rumbo de tus finanzas."
+      footer={<>¿Primera vez en Quetzal? <Link className="auth-link font-semibold hover:underline" to="/registro">Crear una cuenta</Link></>}
     >
-      <form className="space-y-5" onSubmit={handleSubmit} noValidate>
+      <form className="auth-form-enter space-y-5" onSubmit={handleSubmit} noValidate>
         {message && (
           <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {message}
@@ -74,7 +74,7 @@ export default function LoginPage() {
             aria-invalid={Boolean(emailError)}
             aria-describedby={emailError ? 'email-error' : undefined}
             placeholder="tu@correo.com"
-            className="h-12 w-full rounded-xl border border-stone-200 bg-white px-4 text-sm outline-none transition placeholder:text-stone-400 focus:border-[#6d9d79] focus:ring-4 focus:ring-[#6d9d79]/15 aria-invalid:border-red-400"
+            className="auth-input h-12 w-full rounded-xl border px-4 text-sm outline-none transition"
           />
           {emailError && <p id="email-error" className="mt-1.5 text-xs text-red-600">{emailError}</p>}
         </div>
@@ -95,7 +95,7 @@ export default function LoginPage() {
               aria-invalid={Boolean(passwordError)}
               aria-describedby={passwordError ? 'password-error' : undefined}
               placeholder="Tu contraseña"
-              className="h-12 w-full rounded-xl border border-stone-200 bg-white px-4 pr-12 text-sm outline-none transition placeholder:text-stone-400 focus:border-[#6d9d79] focus:ring-4 focus:ring-[#6d9d79]/15 aria-invalid:border-red-400"
+              className="auth-input h-12 w-full rounded-xl border px-4 pr-12 text-sm outline-none transition"
             />
             <button
               type="button"
@@ -109,8 +109,8 @@ export default function LoginPage() {
           {passwordError && <p id="password-error" className="mt-1.5 text-xs text-red-600">{passwordError}</p>}
         </div>
 
-        <Button type="submit" disabled={submitting} className="h-12 w-full rounded-xl bg-[#1d4d3d] text-sm font-semibold text-white hover:bg-[#153c30]">
-          {submitting ? 'Iniciando sesión…' : 'Entrar'}
+        <Button type="submit" disabled={submitting} className="auth-submit-button h-12 w-full rounded-xl text-sm font-semibold text-white">
+          {submitting ? 'Validando acceso…' : 'Ingresar a mi cuenta'}
           {!submitting && <ArrowRight size={18} className="ml-1" />}
         </Button>
       </form>
